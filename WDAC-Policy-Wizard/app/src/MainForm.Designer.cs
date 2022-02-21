@@ -54,6 +54,7 @@ namespace WDAC_Wizard
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
+            this.button_AH_MDE = new System.Windows.Forms.Button();
             this.control_Panel.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -387,12 +388,31 @@ namespace WDAC_Wizard
             this.label4.TabIndex = 35;
             this.label4.Text = "Merge two existing policies into one\r\n";
             // 
+            // button_AH_MDE
+            // 
+            this.button_AH_MDE.FlatAppearance.BorderSize = 0;
+            this.button_AH_MDE.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(190)))), ((int)(((byte)(230)))), ((int)(((byte)(253)))));
+            this.button_AH_MDE.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(190)))), ((int)(((byte)(230)))), ((int)(((byte)(253)))));
+            this.button_AH_MDE.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button_AH_MDE.Font = new System.Drawing.Font("Tahoma", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.button_AH_MDE.Image = global::WDAC_Wizard.Properties.Resources.merge;
+            this.button_AH_MDE.Location = new System.Drawing.Point(1043, 58);
+            this.button_AH_MDE.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button_AH_MDE.Name = "button_AH_MDE";
+            this.button_AH_MDE.Size = new System.Drawing.Size(133, 153);
+            this.button_AH_MDE.TabIndex = 36;
+            this.button_AH_MDE.Text = "Parse CSV";
+            this.button_AH_MDE.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.button_AH_MDE.UseVisualStyleBackColor = true;
+            this.button_AH_MDE.Click += new System.EventHandler(this.Button_AH_MDE_Click);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(120F, 120F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(1232, 703);
+            this.Controls.Add(this.button_AH_MDE);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
@@ -442,6 +462,7 @@ namespace WDAC_Wizard
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label workflow_Label;
+        private System.Windows.Forms.Button button_AH_MDE;
     }
 }
 

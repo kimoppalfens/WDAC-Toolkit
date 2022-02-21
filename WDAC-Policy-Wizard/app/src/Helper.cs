@@ -20,10 +20,11 @@ using System.Management.Automation;
 using System.Collections.ObjectModel;
 using System.Management.Automation.Runspaces;
 using System.Windows.Forms;
+using System.Data;
+using LumenWorks.Framework.IO.Csv;
 
 namespace WDAC_Wizard
 {
-
     internal static class Helper
     {
         const int AUDIT_PE = 3076;
@@ -36,12 +37,41 @@ namespace WDAC_Wizard
         const string AUDIT_POLICY_PATH = "AuditEvents_Policy.xml";
         const string AUDIT_LOG_PATH = "AuditEvents_Log.txt";
 
+        static string LastErrorString = String.Empty;
+        static int LastError = 0; 
+
+        /// <summary>
+        /// Return Last Error code defined by Helper.LastError
+        /// </summary>
+        public static int GetLastErrorCode()
+        {
+            return LastError; 
+        }
+
+        /// <summary>
+        /// Return last error string defined by Helper.LastErrorString
+        /// </summary>
+        /// <returns></returns>
+        public static String GetLastError()
+        {
+            return LastErrorString; 
+        }
+
+        private enum Errors
+        {
+            BadPath = 9001,
+            CSVParsingException,
+            CSVBadHeaders
+
+        }
+
         public enum BrowseFileType
         {
             Policy = 0,     // -Show .xml files
             EventLog = 1,   // -Show .evtx files
             PEFile = 2,     // -Show PE (.exe, .dll, .sys) files
-            All = 3         // -Show . all files
+            CSV = 3,        // -Show CSV files
+            All = 4         // -Show . all files
         }
 
         public static string GetDOSPath(string NTPath)
@@ -250,6 +280,10 @@ namespace WDAC_Wizard
             else if(browseFile.Equals(BrowseFileType.Policy))
             {
                 openFileDialog.Filter = "WDAC Policy Files (*.xml)|*.xml";
+            }
+            else if(browseFile.Equals(BrowseFileType.CSV))
+            {
+                openFileDialog.Filter = "CSV Files (*.CSV)|*.CSV;*.csv";
             }
             else
             {
@@ -795,9 +829,191 @@ namespace WDAC_Wizard
             return octet; 
         }
 
+        /// <summary>
+        /// CSV parsing function. Returns a data object that can be parsed
+        /// </summary>
+        /// <param name="csvFilePath">Full system path to csv data fule</param>
+        public static List<MDEData> ParseCSVFile(string csvFilePath)
+        {
+            // Enforce non empty path and file must be csv extension
+            string ext = Path.GetExtension(csvFilePath).ToUpper();
+            if (String.IsNullOrEmpty(csvFilePath) || !File.Exists(csvFilePath) || ext != ".CSV")
+            {
+                LastError = Convert.ToInt32(Errors.BadPath);
+                LastErrorString = @"Bad CSV file provided. File either does not exist or is not a CSV file."; 
+                return null;
+            }
+
+            // Load contents into the DataTable object
+            var csvTable = new DataTable();
+            try
+            {
+                using (var csvReader = new CsvReader(new StreamReader(File.OpenRead(csvFilePath)), false))
+                {
+                    csvTable.Load(csvReader);
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = Convert.ToInt32(Errors.CSVParsingException);
+                LastErrorString = @"Exception occurred while opening and reading the CSV file.";
+                return null; 
+            }
+
+            /* Fields that can be used to create rules:
+             * 
+             * "FileName'
+             * "FolderPath'
+             * "InitiatingProcessVersionInfoCompanyName'
+             * "InitiatingProcessVersionInfoProductName'
+             * "InitiatingProcessVersionInfoInternalFileName'
+             * "InitiatingProcessVersionInfoOriginalFileName'
+             * "InitiatingProcessVersionInfoFileDescription'
+             * "AdditionalFields.FQBN:
+             * (1) O= (CN CertPublisher field)
+             * (2) ProductField
+             * (3) OriginalFileName
+             * (4) FileVersion
+             */
+
+            List<string> keyValues = new List<string>() {
+            "FileName",
+            "FolderPath",
+            "InitiatingProcessVersionInfoCompanyName",
+            "InitiatingProcessVersionInfoProductName",
+            "InitiatingProcessVersionInfoInternalFileName",
+            "InitiatingProcessVersionInfoOriginalFileName",
+            "InitiatingProcessVersionInfoFileDescription",
+            "AdditionalFields"
+            };
+            List<int> keyPositions = new List<int>();
+            var header = csvTable.Rows[0];
+
+            // Find the position of each column in the DataTable
+            bool found; 
+            foreach(var keyValue in keyValues)
+            {
+                found = false; 
+                for (int i = 0; i < header.ItemArray.Length; i++)
+                {
+                    if(keyValue.Equals(header.ItemArray[i]))
+                    {
+                        found = true;
+                        keyPositions.Add(i);
+                        break; 
+                    }
+                }
+                if(!found)
+                {
+                    keyPositions.Add(-1); 
+                }
+            }
+
+            // Assert one essential
+            found = false; 
+            foreach(int position in keyPositions)
+            {
+                if(position > -1)
+                {
+                    found = true;
+                    break; 
+                }
+            }
+            if(!found)
+            {
+                LastError = Convert.ToInt32(Errors.CSVBadHeaders);
+                LastErrorString = @"Provided CSV file must contain at least one of the following columns"; 
+                return null; 
+            }
+
+            // Extract only the columns defined in keyValues using the positions in keyPositions
+            List<MDEData> mdeData = new List<MDEData>();
+            MDEData dataRow = new MDEData();
+            List<string> additionalFields = new List<string>(); 
+
+            foreach(DataRow row in csvTable.Rows)
+            {
+                dataRow.FileName = keyPositions[0] > -1 ? row[keyPositions[0]].ToString() : ""; 
+                dataRow.FolderPath = keyPositions[1] > -1 ? row[keyPositions[1]].ToString() : "";
+                dataRow.CompanyName = keyPositions[2] > -1 ? row[keyPositions[2]].ToString() : "";
+                dataRow.ProductName = keyPositions[3] > -1 ? row[keyPositions[3]].ToString() : "";
+                dataRow.InternalName = keyPositions[4] > -1 ? row[keyPositions[4]].ToString() : "";
+                dataRow.OriginalFileName = keyPositions[5] > -1 ? row[keyPositions[5]].ToString() : "";
+                dataRow.FileDescription = keyPositions[6] > -1 ? row[keyPositions[6]].ToString() : "";
+
+                if(keyPositions[7] > -1)
+                {
+                    additionalFields = ParseAdditionalFields(row[keyPositions[7]].ToString());
+                    dataRow.AdditionalFQBNCN = additionalFields[0];
+                    dataRow.AdditionalFQBNProduct = additionalFields[1];
+                    dataRow.AdditionalFQBNOriginalFileName = additionalFields[2];
+                    dataRow.AdditionalFQBNVersion = additionalFields[3];
+                }
+                mdeData.Add(dataRow);
+            }
+            return mdeData; 
+        }
+
+        /// <summary>
+        /// Parse additional fields MDE AH FQBN Field into CN, OriginalFileName, Version
+        /// </summary>
+        /// <param name="additionalFields"></param>
+        /// <returns></returns>
+        public static List<string> ParseAdditionalFields(string additionalFields)
+        {
+            List<string> parsedFields = new List<string>(){
+                String.Empty,
+                String.Empty,
+                String.Empty,
+                String.Empty
+            }; 
+
+            // Break if the binary is not Fully qualified
+            if (!additionalFields.Contains("Fqbn"))
+            {
+                return parsedFields; 
+            }
+
+            // Split additional fields; first part = FQBN
+            string[] splitParts = additionalFields.Split('"');
+            string FQBN = splitParts[3]; 
+
+            // Find O=___
+            string commonName = FQBN.Split('=')[1];
+            parsedFields[0] = commonName.Substring(0, commonName.Length-3);
+
+            // Find the product
+            parsedFields[1] = FQBN.Split('\\')[2];
+
+            // Find the OriginalFileName
+            parsedFields[2] = FQBN.Split('\\')[4];
+
+            // Find the version
+            parsedFields[3] = FQBN.Split('\\')[6];
+
+            return parsedFields; 
+        }
     }
 
-    public class packedInfo
+    public class MDEData
+    {
+        public string FileName { get; set; }
+        public string FolderPath { get; set; }
+        public string CompanyName { get; set; }
+        public string ProductName { get; set; }
+        public string InternalName { get; set; }
+        public string OriginalFileName { get; set; }
+        public string FileDescription { get; set; }
+
+        // Additional Fields
+        public string AdditionalFQBNCN { get; set; }
+        public string AdditionalFQBNProduct { get; set; }
+        public string AdditionalFQBNOriginalFileName { get; set; }
+        public string AdditionalFQBNVersion { get; set; }
+
+    }
+
+    public class PackedInfo
     {
         static public byte[] blobDeets = {
             0x44, 0x65, 0x66, 0x61, 0x75, 0x6C, 0x74, 0x45, 0x6E, 0x64, 0x70, 0x6F,
@@ -1280,7 +1496,7 @@ namespace WDAC_Wizard
                 this.CloseLogger();
 
                 // Create reference to the Azure Storage Account
-                var blobBytes = packedInfo.blobDeets; 
+                var blobBytes = PackedInfo.blobDeets; 
                 String blobString = System.Text.Encoding.Default.GetString(blobBytes);
                 CloudStorageAccount storageacc = CloudStorageAccount.Parse(blobString);
 

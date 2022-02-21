@@ -2304,6 +2304,22 @@ namespace WDAC_Wizard
             this.label_Info.Visible = false;
         }
 
+        /// <summary>
+        /// Testing function to parse CSV file
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button_AH_MDE_Click(object sender, EventArgs e)
+        {
+            string csvFilePath = Helper.BrowseForSingleFile("Browse for Advanced Hunting CSV Export File", Helper.BrowseFileType.CSV);
+            List<MDEData> mdeData = Helper.ParseCSVFile(csvFilePath); 
+
+            if(mdeData == null)
+            {
+                int errorCode = Convert.ToInt32(Helper.GetLastErrorCode());
+                string errorMsg = Helper.GetLastError(); 
+            }
+        }
     }
 
 }
