@@ -146,8 +146,9 @@ namespace WDAC_Wizard
 
                 if(count == 1)
                 {
-                    DialogResult res = MessageBox.Show(String.Format("The Wizard has successfully added the Allow Supplemental Policy rule to {0}.", Path.GetFileName(this.BaseToSupplementPath)),
-                    "Success", MessageBoxButtons.OK, MessageBoxIcon.None);
+                    DialogResult res = MessageBox.Show(String.Format("The Wizard has successfully added the Allow Supplemental Policy rule to {0}.", 
+                        Path.GetFileName(this.BaseToSupplementPath)),
+                        "Success", MessageBoxButtons.OK, MessageBoxIcon.None);
                 }
             }
             else if (IsPolicyExtendableCode == 1 && count < 1)

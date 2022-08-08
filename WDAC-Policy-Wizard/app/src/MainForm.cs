@@ -2283,10 +2283,10 @@ namespace WDAC_Wizard
             label_Info.Focus();
             label_Info.BringToFront();             
             
-            Timer settingsUpdateNotificationTimer = new Timer();
-            settingsUpdateNotificationTimer.Interval = (5000); //3 secs
-            settingsUpdateNotificationTimer.Tick += new EventHandler(SettingUpdateTimer_Tick);
-            settingsUpdateNotificationTimer.Start();
+            //Timer settingsUpdateNotificationTimer = new Timer();
+            //settingsUpdateNotificationTimer.Interval = (5000); //3 secs
+            //settingsUpdateNotificationTimer.Tick += new EventHandler(SettingUpdateTimer_Tick);
+            //settingsUpdateNotificationTimer.Start();
 
         }
 

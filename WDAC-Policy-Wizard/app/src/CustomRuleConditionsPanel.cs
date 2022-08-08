@@ -32,7 +32,8 @@ namespace WDAC_Wizard
         private Exceptions_Control exceptionsControl;
         private bool redoRequired;
         private string[] DefaultValues;
-        private Dictionary<string,string> FoundPackages; 
+        private Dictionary<string,string> FoundPackages;
+        private int PreviousCheckboxState; 
 
         private enum UIState
         {
@@ -58,8 +59,8 @@ namespace WDAC_Wizard
             this.redoRequired = false; 
             this.exceptionsControl = null;
             this.DefaultValues = new string[5];
-            this.FoundPackages = new Dictionary<string,string>(); 
-
+            this.FoundPackages = new Dictionary<string,string>();
+            this.PreviousCheckboxState = -1;
         }
 
         /// <summary>
@@ -512,6 +513,7 @@ namespace WDAC_Wizard
             // Reset UI view
             ClearCustomRulesPanel(true);
             this._MainWindow.CustomRuleinProgress = false;
+            this.PreviousCheckboxState = -1;
         }
 
         /// <summary>
@@ -521,27 +523,34 @@ namespace WDAC_Wizard
         private void RuleType_ComboboxChanged(object sender, EventArgs e)
         {
             // Check if the selected item is null (this occurs after reseting it - rule creation)
-            if (comboBox_RuleType.SelectedIndex < 0)
+            int currentState = comboBox_RuleType.SelectedIndex; 
+            if (currentState < 0 || this.PreviousCheckboxState == currentState)
             {
                 return; 
             }
 
-            string selectedOpt = comboBox_RuleType.SelectedItem.ToString();
-            ClearCustomRulesPanel(false);
-            label_Info.Visible = true;
-            label_Error.Visible = false; // Clear error label
-
-            // Reset checkbox to unchecked
-            if(this.checkBox_CustomValues.Checked)
+            // Combo box state was previously not set; skip all resetting of the UI
+            if (this.PreviousCheckboxState != -1)
             {
-                this.checkBox_CustomValues.Checked = false;
-                this.PolicyCustomRule.UsingCustomValues = false; 
+                ClearCustomRulesPanel(false);
+                label_Info.Visible = true;
+                label_Error.Visible = false; // Clear error label
+
+                // Reset checkbox to unchecked
+                if (this.checkBox_CustomValues.Checked)
+                {
+                    this.checkBox_CustomValues.Checked = false;
+                    this.PolicyCustomRule.UsingCustomValues = false;
+                }
+
+                this.checkBox_CustomPath.Visible = false;
+                this.checkBox_CustomPath.Checked = false;
+                this.panelPackagedApps.Visible = false;
             }
-
-            this.checkBox_CustomPath.Visible = false;
-            this.checkBox_CustomPath.Checked = false;
-            this.panelPackagedApps.Visible = false;
-
+            
+            this.PreviousCheckboxState = currentState;
+            
+            string selectedOpt = comboBox_RuleType.SelectedItem.ToString();
             switch (selectedOpt)
             {
                 case "Publisher":
@@ -619,7 +628,6 @@ namespace WDAC_Wizard
 
             //Other
             textBox_ReferenceFile.Clear();
-            radioButton_Allow.Checked = true;   //default
             label_Info.Visible = false;
 
             // Reset the rule type combobox
@@ -627,6 +635,7 @@ namespace WDAC_Wizard
             {
                 this.comboBox_RuleType.SelectedItem = null;
                 this.comboBox_RuleType.Text = "--Select--";
+                radioButton_Allow.Checked = true;   //default
             }
 
             // Reset the Slider UI textboxes
