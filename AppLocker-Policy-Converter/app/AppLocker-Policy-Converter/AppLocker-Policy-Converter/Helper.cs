@@ -14,7 +14,6 @@ using System.Security.Cryptography;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Win32;
-using System.Diagnostics.Eventing.Reader;
 using System.Collections.ObjectModel;
 
 namespace AppLocker_Policy_Converter
@@ -156,7 +155,8 @@ namespace AppLocker_Policy_Converter
             FileAttrib fileAttrib = new FileAttrib();
             fileAttrib.FileName = fileName;
             fileAttrib.ID = "ID_FILEATTRIB_A_" + cFileAttribRules;
-            fileAttrib.FriendlyName = filePubRule.Description;
+            fileAttrib.FriendlyName = String.Format("Converted from AppLocker rule Id: {0}  ",
+                    filePubRule.Id) + filePubRule.Description;            
 
             // Do not blindly set versions == "*"
             // This is okay to do for Original Filenames
@@ -336,7 +336,8 @@ namespace AppLocker_Policy_Converter
                 {
                     Allow allowRule = new Allow();
                     allowRule.Hash = ConvertHashStringToByte(fileHash.Data);
-                    allowRule.FriendlyName = fileHashRule.Name;
+                    allowRule.FriendlyName = String.Format("Converted from AppLocker rule Id: {0} and Name: {1}",
+                    fileHashRule.Id, fileHashRule.Name);
                     string algo = fileHashRule.Conditions.FileHashCondition[0].Type.ToString(); //e.g. Type = SHA256
                     allowRule.ID = String.Format("ID_ALLOW_B_{0}_{1}", cFileHashRules, algo);
 
@@ -347,7 +348,8 @@ namespace AppLocker_Policy_Converter
                 {
                     Deny denyRule = new Deny();
                     denyRule.Hash = ConvertHashStringToByte(fileHash.Data);
-                    denyRule.FriendlyName = fileHashRule.Name;
+                    denyRule.FriendlyName = String.Format("Converted from AppLocker rule Id: {0} and Name: {1}",
+                    fileHashRule.Id, fileHashRule.Name);
                     string algo = fileHashRule.Conditions.FileHashCondition[0].Type.ToString(); //Type = SHA256
                     denyRule.ID = String.Format("ID_DENY_B_{0}_{1}", cFileHashRules, algo);
 
@@ -397,7 +399,8 @@ namespace AppLocker_Policy_Converter
             {
                 Allow allowRule = new Allow();
                 allowRule.FilePath = wdacPathRule; 
-                allowRule.FriendlyName = filePathRule.Description;
+                allowRule.FriendlyName = String.Format("Converted from AppLocker rule Id: {0} and Name: {1}", 
+                    filePathRule.Id, filePathRule.Name);
                 allowRule.ID = "ID_ALLOW_C_" + cFilePathRules.ToString();
 
                 // Add the Allow rule to FileRules and FileRuleRef section with Windows Signing Scenario
@@ -407,7 +410,8 @@ namespace AppLocker_Policy_Converter
             {
                 Deny denyRule = new Deny();
                 denyRule.FilePath = wdacPathRule; 
-                denyRule.FriendlyName = filePathRule.Description;
+                denyRule.FriendlyName = String.Format("Converted from AppLocker rule Id: {0} and Name: {1}",
+                    filePathRule.Id, filePathRule.Name);
                 denyRule.ID = "ID_DENY_C_" + cFilePathRules.ToString();
 
                 // Add the Deny rule to FileRules and FileRuleRef section with Windows Signing Scenario
