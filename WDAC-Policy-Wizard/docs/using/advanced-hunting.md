@@ -46,4 +46,12 @@ CSV files without the required fields, or with additional fields, may fail to pr
 
 Select the export button to extract the MDE AH events to a csv file.
 
+The csv created in this way can then be used in the Windows Defender Application control wizard.
+
+To achieve this, launch the wizard and on the Home screen select Policy Editor.
+Switch the radio button to Convert Event Log to a WDAC Policy and find the option *Parse MDE Advanced Hunting Events to Policy*.
+Click the *Parse Log File(s)* button and browse to your csv file, click Open.
+You should receive a message box stating that the WDAC Event logs were parsed.
+
+When you click next you get the option to review the Policy suggestions and can use the *Add Allow Rule* button to add the suggestions into your policy.
 
